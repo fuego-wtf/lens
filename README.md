@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="chillin-with-lens.png" alt="Lens" width="400" />
+  <img src="chillin-with-lens.png" alt="Lens" width="100%" />
 </p>
 
 <h3 align="center">Craft specialized agent perspectives.</h3>
