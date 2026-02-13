@@ -1,0 +1,21 @@
+[submodule "store/figma"]
+	path = store/figma
+	url = git@github.com:fuego-wtf/graphyn-figma.git
+[submodule "store/vibe"]
+	path = store/vibe
+	url = git@github.com:fuego-wtf/graphyn-vibe.git
+[submodule "store/graphic-generator"]
+	path = store/graphic-generator
+	url = https://github.com/fuego-wtf/graphyn-graphic-generator.git
+[submodule "store/terminal"]
+	path = store/terminal
+	url = git@github.com:fuego-wtf/graphyn-terminal.git
+[submodule "store/unbuilder"]
+	path = store/unbuilder
+	url = git@github.com:fuego-wtf/unbuilder.git
+[submodule "store/mcp_self-reflect"]
+	path = store/mcp_self-reflect
+	url = git@github.com:fuego-wtf/mcp_self-reflect.git
+[submodule "store/folk"]
+	path = store/folk
+	url = git@github.com:fuego-wtf/folk.git
