@@ -1,3 +1,7 @@
+[workspace]
+members = ["store/*"]
+resolver = "2"
+
 [package]
 name = "lens"
 version = "0.1.0"
