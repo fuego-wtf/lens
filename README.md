@@ -1,16 +1,5 @@
 <p align="center">
-<pre>
-                    ___
-                   /   \
-                  /     \
-                 /   o   \
-                /    |    \
-               /     |     \
-              /______|______\
-                     |
-              ~~~~~~~~~~~~~~~
-                L E N S
-</pre>
+  <img src="chillin-with-lens.png" alt="Lens" width="400" />
 </p>
 
 <h3 align="center">Craft specialized agent perspectives.</h3>
@@ -37,7 +26,7 @@ Your agents are generalists. They see everything but focus on nothing.
  ┌─────────────┐              ┌─────────────┐
  │ Figma file  │              │ 12 components│
  │ API docs    │   ┌─────┐    │ 3 patterns   │
- │ Git history │──▶│ L E N S │──▶│ 1 action plan│
+ │ Git history │──▶│LENS │──▶│ 1 action plan│
  │ Slack msgs  │   └─────┘    │ 0 noise      │
  │ Jira board  │              └─────────────┘
  └─────────────┘
@@ -70,7 +59,7 @@ impl Lens for MyLens {
 lens = { git = "https://github.com/fuego-wtf/lens.git" }
 ```
 
-That's it. Four methods. One trait. Your agent now has a perspective.
+Four methods. One trait. Your agent now has a perspective.
 
 ## How It Works
 
@@ -131,7 +120,7 @@ network = true
 filesystem = false
 
 [mcp_server]
-entry = "target/release/graphyn-figma"
+entry = "target/release/figma"
 runtime = "rust"
 ```
 
@@ -222,7 +211,7 @@ lens = { git = "https://github.com/fuego-wtf/lens.git", features = ["runtime"] }
 ```
 
 The `runtime` feature adds:
-- `LensDiscovery` — scan `~/.graphyn/lenses/` for installed Lenses
+- `LensDiscovery` — scan for installed Lenses
 - `LensLoader` — dynamically load `.dylib`/`.so` at runtime
 - `export_lens!` macro — FFI entry point for compiled Lenses
 
@@ -234,8 +223,8 @@ The `runtime` feature adds:
 │                                                             │
 │   LensDiscovery ──▶ LensLoader ──▶ Lens::execute()         │
 │        │                │               │                   │
-│   ~/.graphyn/       libloading      LensEvent stream        │
-│    lenses/          (dynamic)       to UI / agent           │
+│   ~/.lenses/        libloading      LensEvent stream        │
+│   (installed)       (dynamic)       to UI / agent           │
 └─────────────────────────────────────────────────────────────┘
          │
          ▼
@@ -251,4 +240,4 @@ The `runtime` feature adds:
 
 ## License
 
-MIT &mdash; [Fuego Labs](https://fuego.wtf)
+MIT — [Fuego Labs](https://fuego.wtf)
