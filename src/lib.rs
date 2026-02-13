@@ -3,10 +3,9 @@
 //! A trait standard for crafting specialized agent perspectives.
 //!
 //! This crate defines the **Lens** interface — what a Lens is, how it
-//! communicates, and how it streams events. It contains no runtime,
-//! no loader, no host logic. Pure contract.
+//! communicates, and how it streams events.
 //!
-//! Implementations live in separate crates (e.g., `graphyn-lens` ecosystem).
+//! Enable the `runtime` feature for discovery and dynamic loading.
 //!
 //! # Quick Start
 //!
@@ -38,6 +37,11 @@ pub mod oauth;
 pub mod output_spec;
 pub mod streaming;
 
+#[cfg(feature = "runtime")]
+pub mod discovery;
+#[cfg(feature = "runtime")]
+pub mod loader;
+
 pub use context::{LensContext, LensResult, ToolCaller};
 pub use error::{LensError, Result};
 pub use oauth::{OAuthBroker, OAuthError, OAuthToken};
@@ -56,3 +60,11 @@ pub use output_spec::{
     RenderBlockType, OUTPUT_SPEC_FILENAME,
 };
 pub use streaming::{LensEventStream, StreamingLens};
+
+#[cfg(feature = "runtime")]
+pub use discovery::{
+    DiscoveredLens, LensDiscovery, LENS_DIR, MANIFEST_FILENAME,
+    load_manifest, load_output_spec,
+};
+#[cfg(feature = "runtime")]
+pub use loader::{LoadedLens, LensLoader, LENS_ENTRY_POINT};
