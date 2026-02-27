@@ -19,3 +19,6 @@
 [submodule "store/folk"]
 	path = store/folk
 	url = git@github.com:fuego-wtf/folk.git
+[submodule "store/zai"]
+	path = store/zai
+	url = https://github.com/fuego-wtf/zai.git
