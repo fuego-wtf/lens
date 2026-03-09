@@ -25,6 +25,7 @@ use crate::output_spec::{LensOutputSpec, OUTPUT_SPEC_FILENAME};
 
 /// Manifest filename
 pub const MANIFEST_FILENAME: &str = "lens.toml";
+pub const LEGACY_MANIFEST_FILENAME: &str = "plugin.toml";
 
 /// Default lenses directory name
 pub const LENS_DIR: &str = "lenses";
@@ -281,7 +282,12 @@ pub fn load_manifest<P: AsRef<Path>>(path: P) -> Result<LensManifest> {
 
     // If path points to a directory, look for the manifest inside it
     let manifest_path = if path.is_dir() {
-        path.join(MANIFEST_FILENAME)
+        let primary = path.join(MANIFEST_FILENAME);
+        if primary.exists() {
+            primary
+        } else {
+            path.join(LEGACY_MANIFEST_FILENAME)
+        }
     } else {
         path.to_path_buf()
     };

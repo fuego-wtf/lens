@@ -1,5 +1,11 @@
 [workspace]
-members = ["store/*"]
+members = [
+    "store/domain-hacks",
+    "store/figma",
+    "store/graphic-generator",
+    "store/vibe",
+    "store/zai",
+]
 resolver = "2"
 
 [package]

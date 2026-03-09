@@ -241,3 +241,14 @@ The `runtime` feature adds:
 ## License
 
 MIT — [Fuego Labs](https://fuego.wtf)
+
+---
+
+## Backbone Go-Live Alignment
+
+This repo follows the Graphyn backbone doctrine:
+
+- **Wiring-first**: Lens trait defines clear execution contracts; no hidden behavior
+- **Source-anchored**: All lens capabilities traceable to domain synthesis
+- **Open-source**: Public trait standard for third-party developers
+- **Backbone references**: Store lenses at `store/` implement this trait

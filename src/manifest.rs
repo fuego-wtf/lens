@@ -29,6 +29,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LensManifest {
     /// Core lens metadata
+    #[serde(alias = "plugin")]
     pub lens: LensMetadata,
 
     /// Security configuration for installation validation
@@ -43,9 +44,39 @@ pub struct LensManifest {
     #[serde(default)]
     pub capabilities: Vec<String>,
 
-    /// Dependencies on other lenses (optional)
+    /// Dependencies on other lenses (v1 format)
     #[serde(default)]
     pub dependencies: Vec<LensDependency>,
+
+    // === v2 fields ===
+
+    /// Structured authors (v2)
+    #[serde(default)]
+    pub authors: Vec<Author>,
+
+    /// License information (v2)
+    #[serde(default)]
+    pub license_info: Option<License>,
+
+    /// Registry metadata (v2)
+    #[serde(default)]
+    pub registry: Option<RegistryMetadata>,
+
+    /// MCP tool declarations (v2)
+    #[serde(default)]
+    pub mcp_tools: Vec<McpTool>,
+
+    /// Entry points by mode (v2)
+    #[serde(default)]
+    pub entry_points: Vec<EntryPoint>,
+
+    /// Lifecycle hooks (v2)
+    #[serde(default)]
+    pub hooks: Option<LifecycleHooks>,
+
+    /// Enhanced dependencies with optional flag (v2)
+    #[serde(default)]
+    pub dependencies_v2: Vec<LensDependencyV2>,
 }
 
 /// Security configuration for lens installation
@@ -164,11 +195,11 @@ pub struct LensMetadata {
     #[serde(default)]
     pub description: String,
 
-    /// Lens author(s)
+    /// Lens author(s) - v1 format (string array, deprecated)
     #[serde(default)]
     pub authors: Vec<String>,
 
-    /// Lens license
+    /// Lens license - v1 format (deprecated, use license table)
     #[serde(default)]
     pub license: Option<String>,
 
@@ -179,6 +210,125 @@ pub struct LensMetadata {
     /// Minimum framework version required
     #[serde(default)]
     pub min_framework_version: Option<String>,
+
+    /// Maximum framework version supported
+    #[serde(default)]
+    pub max_framework_version: Option<String>,
+
+    /// Manifest version (1 or 2, defaults to 1)
+    #[serde(default = "default_manifest_version")]
+    pub manifest_version: u32,
+}
+
+fn default_manifest_version() -> u32 {
+    1
+}
+
+/// Structured author information (v2)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Author {
+    /// Author name
+    pub name: String,
+    /// Author email
+    #[serde(default)]
+    pub email: Option<String>,
+    /// Author role: "maintainer", "contributor", "sponsor"
+    #[serde(default)]
+    pub role: Option<String>,
+}
+
+/// License information (v2)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct License {
+    /// SPDX license identifier
+    pub spdx: String,
+    /// Path to license file
+    #[serde(default)]
+    pub file: Option<String>,
+}
+
+/// Registry metadata (v2)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RegistryMetadata {
+    /// Category: "productivity", "development", "integration", "experimental"
+    #[serde(default)]
+    pub category: Option<String>,
+    /// Tags for search/filtering
+    #[serde(default)]
+    pub tags: Vec<String>,
+    /// Lens homepage URL
+    #[serde(default)]
+    pub homepage: Option<String>,
+    /// Source repository URL
+    #[serde(default)]
+    pub repository: Option<String>,
+    /// Issue tracker URL
+    #[serde(default)]
+    pub issues: Option<String>,
+    /// Path to icon file
+    #[serde(default)]
+    pub icon: Option<String>,
+    /// Paths to screenshot files
+    #[serde(default)]
+    pub screenshots: Vec<String>,
+}
+
+/// MCP tool declaration (v2)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct McpTool {
+    /// Tool name
+    pub name: String,
+    /// Tool description
+    pub description: String,
+    /// Path to JSON schema for input
+    #[serde(default)]
+    pub input_schema: Option<String>,
+}
+
+/// Entry point by mode (v2)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EntryPoint {
+    /// Mode: "ask", "plan-first", "code", "designer"
+    pub mode: String,
+    /// Entry point file path
+    pub file: String,
+    /// Path to system prompt template
+    #[serde(default)]
+    pub system_prompt: Option<String>,
+}
+
+/// Lifecycle hooks (v2)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LifecycleHooks {
+    #[serde(default)]
+    pub pre_install: Option<String>,
+    #[serde(default)]
+    pub post_install: Option<String>,
+    #[serde(default)]
+    pub pre_enable: Option<String>,
+    #[serde(default)]
+    pub post_enable: Option<String>,
+    #[serde(default)]
+    pub pre_disable: Option<String>,
+    #[serde(default)]
+    pub post_disable: Option<String>,
+    #[serde(default)]
+    pub pre_uninstall: Option<String>,
+    #[serde(default)]
+    pub post_uninstall: Option<String>,
+}
+
+/// Dependency with version constraint (v2 enhanced)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LensDependencyV2 {
+    /// Lens ID
+    pub id: String,
+    /// Version requirement (semver range)
+    #[serde(default)]
+    pub version: Option<String>,
+    /// Whether dependency is optional
+    #[serde(default)]
+    pub optional: bool,
 }
 
 /// Custom message type definition
@@ -255,7 +405,45 @@ impl Default for LensMetadata {
             license: None,
             repository: None,
             min_framework_version: None,
+            max_framework_version: None,
+            manifest_version: 1,
         }
+    }
+}
+
+impl LensManifest {
+    /// Check if this is a v2 manifest
+    pub fn is_v2(&self) -> bool {
+        self.lens.manifest_version >= 2
+    }
+
+    /// Get all authors (combines v1 and v2 formats)
+    pub fn all_authors(&self) -> Vec<String> {
+        if !self.authors.is_empty() {
+            // v2 format
+            self.authors.iter().map(|a| a.name.clone()).collect()
+        } else {
+            // v1 format
+            self.lens.authors.clone()
+        }
+    }
+
+    /// Get license SPDX identifier
+    pub fn license_spdx(&self) -> Option<&str> {
+        self.license_info
+            .as_ref()
+            .map(|l| l.spdx.as_str())
+            .or(self.lens.license.as_deref())
+    }
+
+    /// Get MCP tool by name
+    pub fn get_mcp_tool(&self, name: &str) -> Option<&McpTool> {
+        self.mcp_tools.iter().find(|t| t.name == name)
+    }
+
+    /// Get entry point for mode
+    pub fn get_entry_point(&self, mode: &str) -> Option<&EntryPoint> {
+        self.entry_points.iter().find(|e| e.mode == mode)
     }
 }
 
@@ -394,5 +582,166 @@ sandbox = "network"
             sandbox: SandboxLevel::Restricted,
         };
         assert!(no_hash.verify_hash("anything"));
+    }
+
+    // === v2 Manifest Tests ===
+
+    #[test]
+    fn test_v2_manifest_detection() {
+        let toml = r#"
+[lens]
+id = "com.example.v2-lens"
+name = "V2 Test Lens"
+version = "1.0.0"
+description = "A v2 format test"
+manifest_version = 2
+min_framework_version = "0.5.0"
+
+[[authors]]
+name = "Test Author"
+email = "test@example.com"
+role = "maintainer"
+
+[license]
+spdx = "MIT"
+
+[registry]
+category = "productivity"
+tags = ["test", "v2"]
+
+[[mcp_tools]]
+name = "test_tool"
+description = "A test MCP tool"
+"#;
+        let manifest = LensManifest::from_toml(toml).unwrap();
+
+        assert_eq!(manifest.lens.manifest_version, 2);
+        assert!(manifest.is_v2());
+        assert!(manifest.lens.min_framework_version.is_some());
+        assert_eq!(manifest.lens.min_framework_version.unwrap(), "0.5.0");
+    }
+
+    #[test]
+    fn test_v2_manifest_with_entry_points() {
+        let toml = r#"
+[lens]
+id = "com.example.multi-mode"
+name = "Multi Mode Lens"
+version = "1.0.0"
+manifest_version = 2
+min_framework_version = "0.5.0"
+
+[[entry_points]]
+mode = "ask"
+file = "dist/ask.js"
+
+[[entry_points]]
+mode = "code"
+file = "dist/code.js"
+system_prompt = "prompts/code.md"
+"#;
+        let manifest = LensManifest::from_toml(toml).unwrap();
+
+        assert_eq!(manifest.entry_points.len(), 2);
+        let ask_entry = manifest.get_entry_point("ask").unwrap();
+        assert_eq!(ask_entry.file, "dist/ask.js");
+
+        let code_entry = manifest.get_entry_point("code").unwrap();
+        assert_eq!(code_entry.system_prompt, Some("prompts/code.md".to_string()));
+    }
+
+    #[test]
+    fn test_v2_manifest_with_mcp_tools() {
+        let toml = r#"
+[lens]
+id = "com.example.mcp-lens"
+name = "MCP Lens"
+version = "1.0.0"
+manifest_version = 2
+min_framework_version = "0.5.0"
+
+[[mcp_tools]]
+name = "search"
+description = "Search for documents"
+input_schema = "schemas/search.json"
+
+[[mcp_tools]]
+name = "index"
+description = "Index a document"
+"#;
+        let manifest = LensManifest::from_toml(toml).unwrap();
+
+        assert_eq!(manifest.mcp_tools.len(), 2);
+        let search_tool = manifest.get_mcp_tool("search").unwrap();
+        assert_eq!(search_tool.description, "Search for documents");
+        assert_eq!(search_tool.input_schema, Some("schemas/search.json".to_string()));
+    }
+
+    #[test]
+    fn test_v2_manifest_with_lifecycle_hooks() {
+        let toml = r#"
+[lens]
+id = "com.example.hooked-lens"
+name = "Hooked Lens"
+version = "1.0.0"
+manifest_version = 2
+min_framework_version = "0.5.0"
+
+[hooks]
+post_install = "scripts/setup.sh"
+pre_uninstall = "scripts/cleanup.sh"
+"#;
+        let manifest = LensManifest::from_toml(toml).unwrap();
+
+        assert!(manifest.hooks.is_some());
+        let hooks = manifest.hooks.unwrap();
+        assert_eq!(hooks.post_install, Some("scripts/setup.sh".to_string()));
+        assert_eq!(hooks.pre_uninstall, Some("scripts/cleanup.sh".to_string()));
+    }
+
+    #[test]
+    fn test_v2_manifest_with_dependencies() {
+        let toml = r#"
+[lens]
+id = "com.example.dep-lens"
+name = "Dependent Lens"
+version = "1.0.0"
+manifest_version = 2
+min_framework_version = "0.5.0"
+
+[[dependencies_v2]]
+id = "com.graphyn.base"
+version = ">=1.0.0"
+optional = false
+
+[[dependencies_v2]]
+id = "com.example.optional"
+version = "^1.0.0"
+optional = true
+"#;
+        let manifest = LensManifest::from_toml(toml).unwrap();
+
+        assert_eq!(manifest.dependencies_v2.len(), 2);
+        assert_eq!(manifest.dependencies_v2[0].id, "com.graphyn.base");
+        assert!(!manifest.dependencies_v2[0].optional);
+        assert!(manifest.dependencies_v2[1].optional);
+    }
+
+    #[test]
+    fn test_v1_v2_backwards_compatibility() {
+        // v1 manifest should still parse
+        let toml = r#"
+[lens]
+id = "legacy-lens"
+name = "Legacy Lens"
+version = "0.1.0"
+authors = ["Legacy Author"]
+license = "MIT"
+"#;
+        let manifest = LensManifest::from_toml(toml).unwrap();
+
+        assert_eq!(manifest.lens.manifest_version, 1); // defaults to 1
+        assert!(!manifest.is_v2());
+        assert_eq!(manifest.lens.authors, vec!["Legacy Author".to_string()]);
     }
 }
