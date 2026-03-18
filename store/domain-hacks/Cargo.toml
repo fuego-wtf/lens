@@ -1,0 +1,25 @@
+[package]
+name = "domain-hacks"
+version = "0.1.0"
+authors = ["Graphyn"]
+edition = "2021"
+description = "Domain growth hacking tools for AI-powered development"
+license = "MIT"
+repository = "https://github.com/fuego-wtf/domain-hacks"
+
+[dependencies]
+lens = { git = "https://github.com/fuego-wtf/lens.git" }
+async-trait = "0.1"
+tokio = { version = "1", features = ["sync", "time", "macros"] }
+tokio-stream = "0.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+thiserror = "1.0"
+anyhow = "1.0"
+trust-dns-resolver = "0.23"
+tracing = "0.1"
+futures = "0.3"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full", "test-util", "macros"] }

@@ -1,0 +1,67 @@
+[plugin]
+id = "domain-hacks"
+name = "Domain Hacks"
+version = "0.1.0"
+description = "Domain growth hacking tools for platform-specific ecosystems and action-oriented domains"
+authors = ["Graphyn <hello@graphyn.xyz>"]
+license = "MIT"
+repository = "https://github.com/fuego-wtf/domain-hacks"
+min_framework_version = "0.1.0"
+
+capabilities = [
+    "domain_availability_check",
+    "dns_verification",
+    "http_verification",
+    "strategy_generation",
+    "landing_page_template",
+    "godaddy_integration",
+    "seo_optimization"
+]
+
+[[message_types]]
+key = "availability_check"
+component = "components/AvailabilityView.tsx"
+description = "Domain availability check results with DNS verification"
+interactive = false
+
+[[message_types]]
+key = "strategy_tier1"
+component = "components/StrategyTier1View.tsx"
+description = "Tier 1 strategy - Platform-specific ecosystems"
+interactive = false
+
+[[message_types]]
+key = "strategy_tier2"
+component = "components/StrategyTier2View.tsx"
+description = "Tier 2 strategy - Action-oriented domain hacks"
+interactive = false
+
+[[message_types]]
+key = "strategy_tier3"
+component = "components/StrategyTier3View.tsx"
+description = "Tier 3 strategy - Category authority domains"
+interactive = false
+
+[[message_types]]
+key = "landing_page"
+component = "components/LandingPageTemplate.tsx"
+description = "SEO-optimized landing page template for domain"
+interactive = false
+
+[[message_types]]
+key = "seo_recommendations"
+component = "components/SEOView.tsx"
+description = "SEO optimization recommendations for domain"
+interactive = false
+
+[[message_types]]
+key = "progress"
+component = "components/ProgressView.tsx"
+description = "Domain scanning and verification progress"
+interactive = false
+
+[[message_types]]
+key = "error"
+component = "components/DomainError.tsx"
+description = "Displays domain plugin errors"
+interactive = false
