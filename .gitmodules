@@ -22,6 +22,8 @@
 [submodule "store/zai"]
 	path = store/zai
 	url = https://github.com/fuego-wtf/zai.git
+[submodule "store/desktop-automation"]
+	path = store/desktop-automation
 	url = git@github.com:fuego-wtf/desktop-automation.git
 [submodule "store/leanbench"]
 	path = store/leanbench
