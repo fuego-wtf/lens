@@ -48,7 +48,7 @@ pub use oauth::{OAuthBroker, OAuthError, OAuthToken};
 pub use events::LensEvent;
 pub use lens::Lens;
 pub use manifest::{
-    LensDependency, LensManifest, LensMetadata, MessageType, Permission, SandboxLevel,
+    LensDependency, LensManifest, LensMetadata, LensSurface, MessageType, Permission, SandboxLevel,
     SecurityConfig,
 };
 pub use mcp_server::{

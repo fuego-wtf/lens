@@ -20,7 +20,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::error::{LensError, Result};
-use crate::manifest::LensManifest;
+use crate::manifest::{LensManifest, LensSurface};
 use crate::output_spec::{LensOutputSpec, OUTPUT_SPEC_FILENAME};
 
 /// Manifest filename
@@ -71,6 +71,26 @@ impl DiscoveredLens {
     /// Get path to a component file
     pub fn component_path(&self, component: &str) -> PathBuf {
         self.path.join(component)
+    }
+
+    /// Get the surface type from manifest (T-LENS-SURFACE-001)
+    pub fn surface(&self) -> LensSurface {
+        self.manifest.lens.surface.clone()
+    }
+
+    /// Check if this lens supports a given surface type (T-LENS-SURFACE-001 multi-surface)
+    pub fn supports_surface(&self, surface: &LensSurface) -> bool {
+        self.manifest.lens.supports_surface(surface)
+    }
+
+    /// Get all supported surfaces (T-LENS-SURFACE-001)
+    pub fn all_surfaces(&self) -> Vec<LensSurface> {
+        self.manifest
+            .lens
+            .all_surfaces()
+            .into_iter()
+            .cloned()
+            .collect()
     }
 }
 
@@ -190,7 +210,10 @@ impl LensDiscovery {
         }
 
         let manifest_content = std::fs::read_to_string(&manifest_path).map_err(|e| {
-            LensError::InvalidInput(format!("Failed to read manifest {:?}: {}", manifest_path, e))
+            LensError::InvalidInput(format!(
+                "Failed to read manifest {:?}: {}",
+                manifest_path, e
+            ))
         })?;
 
         let manifest = LensManifest::from_toml(&manifest_content).map_err(|e| {
@@ -293,7 +316,10 @@ pub fn load_manifest<P: AsRef<Path>>(path: P) -> Result<LensManifest> {
     };
 
     let content = std::fs::read_to_string(&manifest_path).map_err(|e| {
-        LensError::InvalidInput(format!("Failed to read manifest {:?}: {}", manifest_path, e))
+        LensError::InvalidInput(format!(
+            "Failed to read manifest {:?}: {}",
+            manifest_path, e
+        ))
     })?;
 
     LensManifest::from_toml(&content)

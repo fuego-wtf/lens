@@ -49,7 +49,6 @@ pub struct LensManifest {
     pub dependencies: Vec<LensDependency>,
 
     // === v2 fields ===
-
     /// Structured authors (v2)
     #[serde(default)]
     pub authors: Vec<Author>,
@@ -119,6 +118,26 @@ pub enum SandboxLevel {
     Network,
     /// Full access (requires explicit user approval)
     Full,
+}
+
+/// Lens surface type — determines where the lens renders (T-LENS-SURFACE-001)
+///
+/// Each lens declares its surface in lens.toml:
+/// ```toml
+/// [lens]
+/// id = "my-lens"
+/// surface = "pane"  # or "pack" or "desktop_app"
+/// ```
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum LensSurface {
+    /// Renders as an inline pane within the main layout (default)
+    #[default]
+    Pane,
+    /// Renders as a pack/sidebar panel
+    Pack,
+    /// Runs as a standalone desktop application window
+    DesktopApp,
 }
 
 /// Parsed permission with type and scope
@@ -218,6 +237,17 @@ pub struct LensMetadata {
     /// Manifest version (1 or 2, defaults to 1)
     #[serde(default = "default_manifest_version")]
     pub manifest_version: u32,
+
+    /// Surface type — determines where the lens renders (T-LENS-SURFACE-001)
+    /// Defaults to Pane for backward compatibility
+    #[serde(default)]
+    pub surface: LensSurface,
+
+    /// All supported surface types (T-LENS-SURFACE-001 multi-surface)
+    /// A lens can render as both pane and pack, for example.
+    /// If empty, the lens supports only its primary `surface` type.
+    #[serde(default)]
+    pub surfaces: Vec<LensSurface>,
 }
 
 fn default_manifest_version() -> u32 {
@@ -407,6 +437,29 @@ impl Default for LensMetadata {
             min_framework_version: None,
             max_framework_version: None,
             manifest_version: 1,
+            surface: LensSurface::Pane,
+            surfaces: Vec::new(),
+        }
+    }
+}
+
+impl LensMetadata {
+    /// Check if this lens supports a given surface type (T-LENS-SURFACE-001)
+    pub fn supports_surface(&self, surface: &LensSurface) -> bool {
+        if self.surfaces.is_empty() {
+            // No explicit surfaces list — primary surface only
+            &self.surface == surface
+        } else {
+            self.surfaces.iter().any(|s| s == surface)
+        }
+    }
+
+    /// Get all supported surfaces. Falls back to primary surface if none declared.
+    pub fn all_surfaces(&self) -> Vec<&LensSurface> {
+        if self.surfaces.is_empty() {
+            vec![&self.surface]
+        } else {
+            self.surfaces.iter().collect()
         }
     }
 }
@@ -538,7 +591,10 @@ sandbox = "network"
 
         assert!(manifest.security.is_some());
         let security = manifest.security.unwrap();
-        assert_eq!(security.library_hash, Some("sha256:abc123def456".to_string()));
+        assert_eq!(
+            security.library_hash,
+            Some("sha256:abc123def456".to_string())
+        );
         assert_eq!(security.permissions.len(), 2);
         assert_eq!(security.sandbox, SandboxLevel::Network);
 
@@ -647,7 +703,10 @@ system_prompt = "prompts/code.md"
         assert_eq!(ask_entry.file, "dist/ask.js");
 
         let code_entry = manifest.get_entry_point("code").unwrap();
-        assert_eq!(code_entry.system_prompt, Some("prompts/code.md".to_string()));
+        assert_eq!(
+            code_entry.system_prompt,
+            Some("prompts/code.md".to_string())
+        );
     }
 
     #[test]
@@ -674,7 +733,10 @@ description = "Index a document"
         assert_eq!(manifest.mcp_tools.len(), 2);
         let search_tool = manifest.get_mcp_tool("search").unwrap();
         assert_eq!(search_tool.description, "Search for documents");
-        assert_eq!(search_tool.input_schema, Some("schemas/search.json".to_string()));
+        assert_eq!(
+            search_tool.input_schema,
+            Some("schemas/search.json".to_string())
+        );
     }
 
     #[test]
@@ -743,5 +805,59 @@ license = "MIT"
         assert_eq!(manifest.lens.manifest_version, 1); // defaults to 1
         assert!(!manifest.is_v2());
         assert_eq!(manifest.lens.authors, vec!["Legacy Author".to_string()]);
+    }
+
+    // === Multi-Surface Tests (T-LENS-SURFACE-001) ===
+
+    #[test]
+    fn test_multi_surface_manifest() {
+        let toml = r#"
+[lens]
+id = "terminal"
+name = "Terminal"
+version = "0.2.0"
+description = "Terminal — run commands in your project directory"
+surface = "pane"
+surfaces = ["pane", "pack"]
+manifest_version = 2
+"#;
+        let manifest = LensManifest::from_toml(toml).unwrap();
+
+        assert_eq!(manifest.lens.id, "terminal");
+        assert_eq!(manifest.lens.surface, LensSurface::Pane);
+        assert_eq!(manifest.lens.surfaces.len(), 2);
+        assert_eq!(manifest.lens.surfaces[0], LensSurface::Pane);
+        assert_eq!(manifest.lens.surfaces[1], LensSurface::Pack);
+
+        // supports_surface checks
+        assert!(manifest.lens.supports_surface(&LensSurface::Pane));
+        assert!(manifest.lens.supports_surface(&LensSurface::Pack));
+        assert!(!manifest.lens.supports_surface(&LensSurface::DesktopApp));
+
+        // all_surfaces returns declared list
+        let all = manifest.lens.all_surfaces();
+        assert_eq!(all.len(), 2);
+    }
+
+    #[test]
+    fn test_single_surface_fallback() {
+        let toml = r#"
+[lens]
+id = "figma"
+name = "Figma"
+version = "0.1.0"
+surface = "desktop_app"
+"#;
+        let manifest = LensManifest::from_toml(toml).unwrap();
+
+        // No surfaces array — only primary surface supported
+        assert!(manifest.lens.surfaces.is_empty());
+        assert!(manifest.lens.supports_surface(&LensSurface::DesktopApp));
+        assert!(!manifest.lens.supports_surface(&LensSurface::Pane));
+
+        // all_surfaces falls back to primary
+        let all = manifest.lens.all_surfaces();
+        assert_eq!(all.len(), 1);
+        assert_eq!(*all[0], LensSurface::DesktopApp);
     }
 }
