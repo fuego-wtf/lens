@@ -118,13 +118,12 @@ impl LensLoader {
 
         let library = Arc::new(library);
 
-        let create_lens: Symbol<CreateLensFn> =
-            library.get(LENS_ENTRY_POINT).map_err(|e| {
-                LensError::Initialization(format!(
-                    "Lens {:?} missing 'create_lens' entry point: {}",
-                    path_buf, e
-                ))
-            })?;
+        let create_lens: Symbol<CreateLensFn> = library.get(LENS_ENTRY_POINT).map_err(|e| {
+            LensError::Initialization(format!(
+                "Lens {:?} missing 'create_lens' entry point: {}",
+                path_buf, e
+            ))
+        })?;
 
         let lens_ptr = create_lens();
 

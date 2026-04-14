@@ -75,10 +75,7 @@ pub trait StreamingLens: Lens {
     /// Returns both the final result and a stream of events that
     /// occurred during execution. Desktop can subscribe to this
     /// stream to show progress in the UI.
-    async fn execute_streaming(
-        &self,
-        ctx: LensContext,
-    ) -> Result<(LensResult, LensEventStream)>;
+    async fn execute_streaming(&self, ctx: LensContext) -> Result<(LensResult, LensEventStream)>;
 }
 
 #[cfg(test)]
@@ -235,7 +232,10 @@ mod tests {
 
         let mut progress_events = Vec::new();
         while let Some(event) = stream.next().await {
-            if let LensEvent::Progress { message, percent, .. } = event {
+            if let LensEvent::Progress {
+                message, percent, ..
+            } = event
+            {
                 progress_events.push((message, percent));
             }
         }

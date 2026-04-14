@@ -102,9 +102,7 @@ mod tests {
         }
 
         async fn execute(&self, ctx: LensContext) -> Result<LensResult> {
-            let value = ctx.input.get("value")
-                .and_then(|v| v.as_i64())
-                .unwrap_or(0);
+            let value = ctx.input.get("value").and_then(|v| v.as_i64()).unwrap_or(0);
 
             Ok(LensResult::success(json!({
                 "doubled": value * 2
@@ -124,10 +122,7 @@ mod tests {
     #[tokio::test]
     async fn test_lens_execute_success() {
         let lens = TestLens::new();
-        let ctx = LensContext::new(
-            PathBuf::from("/tmp"),
-            json!({"value": 21}),
-        );
+        let ctx = LensContext::new(PathBuf::from("/tmp"), json!({"value": 21}));
 
         let result = lens.execute(ctx).await.unwrap();
 
@@ -138,10 +133,7 @@ mod tests {
     #[tokio::test]
     async fn test_lens_execute_with_default() {
         let lens = TestLens::new();
-        let ctx = LensContext::new(
-            PathBuf::from("/tmp"),
-            json!({}),
-        );
+        let ctx = LensContext::new(PathBuf::from("/tmp"), json!({}));
 
         let result = lens.execute(ctx).await.unwrap();
 

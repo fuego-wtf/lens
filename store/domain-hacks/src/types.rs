@@ -117,13 +117,14 @@ impl Domain {
         let parts: Vec<&str> = domain.split('.').collect();
 
         if parts.len() < 2 {
-            return Err(crate::error::DomainError::InvalidDomain(
-                format!("Invalid domain: {}", domain)
-            ));
+            return Err(crate::error::DomainError::InvalidDomain(format!(
+                "Invalid domain: {}",
+                domain
+            )));
         }
 
         let tld = parts.last().unwrap().to_string();
-        let name = parts[..parts.len()-1].join(".");
+        let name = parts[..parts.len() - 1].join(".");
 
         Ok(Self {
             name,

@@ -8,13 +8,13 @@ use trust_dns_resolver::{
 };
 
 pub async fn check_dns(domain: &Domain) -> Result<DnsStatus> {
-    let resolver = TokioAsyncResolver::tokio(
-        ResolverConfig::default(),
-        ResolverOpts::default(),
-    )
-    .map_err(|e| crate::error::DomainError::DnsResolutionFailed(
-        format!("Failed to create resolver: {}", e)
-    ))?;
+    let resolver = TokioAsyncResolver::tokio(ResolverConfig::default(), ResolverOpts::default())
+        .map_err(|e| {
+            crate::error::DomainError::DnsResolutionFailed(format!(
+                "Failed to create resolver: {}",
+                e
+            ))
+        })?;
 
     let full_domain = &domain.full;
 
@@ -48,9 +48,12 @@ pub async fn check_http(domain: &Domain) -> Result<HttpStatus> {
         .timeout(Duration::from_secs(10))
         .redirect(reqwest::redirect::Policy::limited(2))
         .build()
-        .map_err(|e| crate::error::DomainError::HttpVerificationFailed(
-            format!("Failed to create HTTP client: {}", e)
-        ))?;
+        .map_err(|e| {
+            crate::error::DomainError::HttpVerificationFailed(format!(
+                "Failed to create HTTP client: {}",
+                e
+            ))
+        })?;
 
     let url = format!("https://{}", domain.full);
 
@@ -84,9 +87,10 @@ pub async fn check_http(domain: &Domain) -> Result<HttpStatus> {
                     content_type: None,
                 })
             } else {
-                Err(crate::error::DomainError::HttpVerificationFailed(
-                    format!("HTTP request failed: {}", e)
-                ))
+                Err(crate::error::DomainError::HttpVerificationFailed(format!(
+                    "HTTP request failed: {}",
+                    e
+                )))
             }
         }
     }
@@ -106,14 +110,16 @@ pub async fn verify_availability(domain: &Domain, api_available: bool) -> Result
 }
 
 pub fn extract_domain_from_url(url: &str) -> Result<Domain> {
-    let url = url.trim().trim_start_matches("http://")
+    let url = url
+        .trim()
+        .trim_start_matches("http://")
         .trim_start_matches("https://")
         .trim_start_matches("www.");
 
-    let domain_part = url.split('/').next()
-        .ok_or_else(|| crate::error::DomainError::InvalidDomain(
-            format!("Invalid URL: {}", url)
-        ))?;
+    let domain_part = url
+        .split('/')
+        .next()
+        .ok_or_else(|| crate::error::DomainError::InvalidDomain(format!("Invalid URL: {}", url)))?;
 
     Domain::parse(domain_part)
 }

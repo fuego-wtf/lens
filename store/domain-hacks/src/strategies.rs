@@ -1,7 +1,5 @@
 use crate::error::Result;
-use crate::types::{
-    DomainStrategy, Domain, StrategyTier, StrategyRecommendations, PhaseOutput,
-};
+use crate::types::{Domain, DomainStrategy, PhaseOutput, StrategyRecommendations, StrategyTier};
 
 pub struct StrategyGenerator;
 
@@ -11,7 +9,8 @@ impl StrategyGenerator {
         let tier_2 = self.generate_tier_2(domain)?;
         let tier_3 = self.generate_tier_3(domain)?;
 
-        let total_cost = tier_1.len() as f64 * 12.5 + tier_2.len() as f64 * 12.5 + tier_3.len() as f64 * 12.5;
+        let total_cost =
+            tier_1.len() as f64 * 12.5 + tier_2.len() as f64 * 12.5 + tier_3.len() as f64 * 12.5;
 
         Ok(PhaseOutput::StrategyGeneration {
             strategies: StrategyRecommendations {

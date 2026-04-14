@@ -137,10 +137,7 @@ impl LensOutputSpec {
     pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self> {
         let path = path.as_ref();
         let content = std::fs::read_to_string(path).map_err(|e| {
-            LensError::InvalidInput(format!(
-                "Failed to read output spec {:?}: {}",
-                path, e
-            ))
+            LensError::InvalidInput(format!("Failed to read output spec {:?}: {}", path, e))
         })?;
         Self::from_yaml(&content)
     }
@@ -391,6 +388,8 @@ outputs:
       - type: notice
 "#;
         let err = LensOutputSpec::from_yaml(yaml).unwrap_err();
-        assert!(err.to_string().contains("must include at least one example payload"));
+        assert!(err
+            .to_string()
+            .contains("must include at least one example payload"));
     }
 }

@@ -1,9 +1,9 @@
-use async_trait::async_trait;
-use lens::{LensContext, LensError, McpServerLens, ToolCallRequest, ToolCallResponse};
 use crate::domains::{check_domain_availability, check_domains_batch, DomainChecker};
 use crate::error::Result;
 use crate::strategies::StrategyGenerator;
 use crate::types::{Domain, DomainAvailability, StrategyRecommendations};
+use async_trait::async_trait;
+use lens::{LensContext, LensError, McpServerLens, ToolCallRequest, ToolCallResponse};
 use serde_json::{json, Value};
 
 pub struct DomainMcpServer {
@@ -26,14 +26,10 @@ impl DomainMcpServer {
 
     fn get_credentials(&self) -> Result<(&str, &str)> {
         let key = self.godaddy_api_key.as_ref().ok_or_else(|| {
-            crate::error::DomainError::Config(
-                "GODADDY_API_KEY not set".to_string()
-            )
+            crate::error::DomainError::Config("GODADDY_API_KEY not set".to_string())
         })?;
         let secret = self.godaddy_api_secret.as_ref().ok_or_else(|| {
-            crate::error::DomainError::Config(
-                "GODADDY_API_SECRET not set".to_string()
-            )
+            crate::error::DomainError::Config("GODADDY_API_SECRET not set".to_string())
         })?;
         Ok((key.as_str(), secret.as_str()))
     }
@@ -57,7 +53,10 @@ impl DomainMcpServer {
         let (key, secret) = self.get_credentials()?;
         let results = check_domains_batch(domains, key, secret).await?;
 
-        let available: Vec<_> = results.iter().filter(|r| r.available && r.verified).collect();
+        let available: Vec<_> = results
+            .iter()
+            .filter(|r| r.available && r.verified)
+            .collect();
         let unavailable: Vec<_> = results.iter().filter(|r| !r.available).collect();
 
         Ok(json!({
@@ -75,9 +74,11 @@ impl DomainMcpServer {
 
         let strategies = match phase_output {
             crate::types::PhaseOutput::StrategyGeneration { strategies } => strategies,
-            _ => return Err(crate::error::DomainError::StrategyGenerationFailed(
-                "Failed to generate strategies".to_string()
-            )),
+            _ => {
+                return Err(crate::error::DomainError::StrategyGenerationFailed(
+                    "Failed to generate strategies".to_string(),
+                ))
+            }
         };
 
         Ok(json!({
@@ -114,11 +115,12 @@ impl McpServerLens for DomainMcpServer {
 
         let result = match tool_name {
             "check_domain_availability" => {
-                let domain = params.get("domain")
+                let domain = params
+                    .get("domain")
                     .and_then(|v| v.as_str())
-                    .ok_or_else(|| LensError::InvalidParams(
-                        "domain parameter required".to_string()
-                    ))?;
+                    .ok_or_else(|| {
+                        LensError::InvalidParams("domain parameter required".to_string())
+                    })?;
 
                 tokio::task::block_in_place(|| {
                     tokio::runtime::Handle::current()
@@ -126,20 +128,21 @@ impl McpServerLens for DomainMcpServer {
                 })
             }
             "check_domains_batch" => {
-                let domains = params.get("domains")
+                let domains = params
+                    .get("domains")
                     .and_then(|v| v.as_array())
-                    .ok_or_else(|| LensError::InvalidParams(
-                        "domains parameter required (array)".to_string()
-                    ))?;
+                    .ok_or_else(|| {
+                        LensError::InvalidParams("domains parameter required (array)".to_string())
+                    })?;
 
                 let domain_strings: std::result::Result<Vec<String>, _> = domains
                     .iter()
                     .map(|v| v.as_str().map(|s| s.to_string()))
                     .collect();
 
-                let domains_vec = domain_strings.map_err(|_| LensError::InvalidParams(
-                    "domains must be array of strings".to_string()
-                ))?;
+                let domains_vec = domain_strings.map_err(|_| {
+                    LensError::InvalidParams("domains must be array of strings".to_string())
+                })?;
 
                 tokio::task::block_in_place(|| {
                     tokio::runtime::Handle::current()
@@ -147,11 +150,12 @@ impl McpServerLens for DomainMcpServer {
                 })
             }
             "generate_strategy" => {
-                let domain = params.get("domain")
+                let domain = params
+                    .get("domain")
                     .and_then(|v| v.as_str())
-                    .ok_or_else(|| LensError::InvalidParams(
-                        "domain parameter required".to_string()
-                    ))?;
+                    .ok_or_else(|| {
+                        LensError::InvalidParams("domain parameter required".to_string())
+                    })?;
 
                 tokio::task::block_in_place(|| {
                     tokio::runtime::Handle::current()
@@ -159,13 +163,15 @@ impl McpServerLens for DomainMcpServer {
                 })
             }
             "suggest_domains" => {
-                let query = params.get("query")
+                let query = params
+                    .get("query")
                     .and_then(|v| v.as_str())
-                    .ok_or_else(|| LensError::InvalidParams(
-                        "query parameter required".to_string()
-                    ))?;
+                    .ok_or_else(|| {
+                        LensError::InvalidParams("query parameter required".to_string())
+                    })?;
 
-                let limit = params.get("limit")
+                let limit = params
+                    .get("limit")
                     .and_then(|v| v.as_u64())
                     .map(|v| v as usize);
 

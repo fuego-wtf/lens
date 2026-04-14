@@ -53,7 +53,10 @@ mod tests {
     #[test]
     fn test_invalid_input_error() {
         let error = LensError::InvalidInput("expected JSON object".to_string());
-        assert_eq!(error.to_string(), "Invalid lens input: expected JSON object");
+        assert_eq!(
+            error.to_string(),
+            "Invalid lens input: expected JSON object"
+        );
     }
 
     #[test]

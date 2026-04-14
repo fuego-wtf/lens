@@ -44,7 +44,6 @@ pub mod loader;
 
 pub use context::{LensContext, LensResult, ToolCaller};
 pub use error::{LensError, Result};
-pub use oauth::{OAuthBroker, OAuthError, OAuthToken};
 pub use events::LensEvent;
 pub use lens::Lens;
 pub use manifest::{
@@ -55,6 +54,7 @@ pub use mcp_server::{
     McpContent, McpPropertySchema, McpServerLens, McpTool, McpToolBuilder, McpToolResponse,
     McpToolSchema,
 };
+pub use oauth::{OAuthBroker, OAuthError, OAuthToken};
 pub use output_spec::{
     InteractivityMode, LensOutputSpec, OutputDefinition, OutputErrorMode, RenderBlock,
     RenderBlockType, OUTPUT_SPEC_FILENAME,
@@ -63,8 +63,7 @@ pub use streaming::{LensEventStream, StreamingLens};
 
 #[cfg(feature = "runtime")]
 pub use discovery::{
-    DiscoveredLens, LensDiscovery, LENS_DIR, MANIFEST_FILENAME,
-    load_manifest, load_output_spec,
+    load_manifest, load_output_spec, DiscoveredLens, LensDiscovery, LENS_DIR, MANIFEST_FILENAME,
 };
 #[cfg(feature = "runtime")]
-pub use loader::{LoadedLens, LensLoader, LENS_ENTRY_POINT};
+pub use loader::{LensLoader, LoadedLens, LENS_ENTRY_POINT};

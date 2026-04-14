@@ -148,6 +148,8 @@ store/
 
 ## Build Your Own
 
+> **Full guide:** [`docs/DEVELOPING_A_LENS.md`](docs/DEVELOPING_A_LENS.md) — step-by-step walkthrough covering manifest, traits, surfaces, shortcuts, security, installation, and publishing.
+
 ### 1. Implement the trait
 
 ```rust

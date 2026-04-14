@@ -136,11 +136,7 @@ impl LensEvent {
     /// * `lens` - Lens identifier
     /// * `key` - Message type (maps to output definition in lens.output.yaml)
     /// * `value` - JSON payload for framework rendering
-    pub fn data(
-        lens: impl Into<String>,
-        key: impl Into<String>,
-        value: serde_json::Value,
-    ) -> Self {
+    pub fn data(lens: impl Into<String>, key: impl Into<String>, value: serde_json::Value) -> Self {
         Self::Data {
             lens: lens.into(),
             key: key.into(),
@@ -292,7 +288,12 @@ mod tests {
         let event = LensEvent::progress("nolimit", "Validating commands...");
 
         match event {
-            LensEvent::Progress { lens, message, percent, .. } => {
+            LensEvent::Progress {
+                lens,
+                message,
+                percent,
+                ..
+            } => {
                 assert_eq!(lens, "nolimit");
                 assert_eq!(message, "Validating commands...");
                 assert!(percent.is_none());
@@ -306,7 +307,12 @@ mod tests {
         let event = LensEvent::progress_with_percent("figma", "Processing...", 45.5);
 
         match event {
-            LensEvent::Progress { lens, message, percent, .. } => {
+            LensEvent::Progress {
+                lens,
+                message,
+                percent,
+                ..
+            } => {
                 assert_eq!(lens, "figma");
                 assert_eq!(message, "Processing...");
                 assert_eq!(percent, Some(45.5));
@@ -345,7 +351,12 @@ mod tests {
         let event = LensEvent::data("spotify", "player", value.clone());
 
         match event {
-            LensEvent::Data { lens, key, value: v, .. } => {
+            LensEvent::Data {
+                lens,
+                key,
+                value: v,
+                ..
+            } => {
                 assert_eq!(lens, "spotify");
                 assert_eq!(key, "player");
                 assert_eq!(v, value);
@@ -360,7 +371,9 @@ mod tests {
         let event = LensEvent::completed("figma", duration);
 
         match event {
-            LensEvent::Completed { lens, duration: d, .. } => {
+            LensEvent::Completed {
+                lens, duration: d, ..
+            } => {
                 assert_eq!(lens, "figma");
                 assert_eq!(d, duration);
             }
@@ -373,7 +386,12 @@ mod tests {
         let event = LensEvent::failed("nolimit", "Rate limit exceeded", true);
 
         match event {
-            LensEvent::Failed { lens, error, recoverable, .. } => {
+            LensEvent::Failed {
+                lens,
+                error,
+                recoverable,
+                ..
+            } => {
                 assert_eq!(lens, "nolimit");
                 assert_eq!(error, "Rate limit exceeded");
                 assert!(recoverable);
@@ -387,7 +405,12 @@ mod tests {
         let event = LensEvent::failed("figma", "Auth failed", false);
 
         match event {
-            LensEvent::Failed { lens, error, recoverable, .. } => {
+            LensEvent::Failed {
+                lens,
+                error,
+                recoverable,
+                ..
+            } => {
                 assert_eq!(lens, "figma");
                 assert_eq!(error, "Auth failed");
                 assert!(!recoverable);
@@ -479,7 +502,13 @@ mod tests {
         );
 
         match event {
-            LensEvent::Checkpoint { lens, phase, data: d, message, .. } => {
+            LensEvent::Checkpoint {
+                lens,
+                phase,
+                data: d,
+                message,
+                ..
+            } => {
                 assert_eq!(lens, "figma");
                 assert_eq!(phase, "deduplication");
                 assert_eq!(d, data);
@@ -511,7 +540,9 @@ mod tests {
         let deserialized: LensEvent = serde_json::from_str(&serialized).unwrap();
 
         match deserialized {
-            LensEvent::Data { lens, key, value, .. } => {
+            LensEvent::Data {
+                lens, key, value, ..
+            } => {
                 assert_eq!(lens, "spotify");
                 assert_eq!(key, "player");
                 assert_eq!(value["track"], "Test");

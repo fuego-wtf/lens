@@ -1,8 +1,8 @@
+use crate::oauth::OAuthBroker;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::Arc;
-use crate::oauth::OAuthBroker;
 
 /// Trait for invoking external MCP tools from within a lens.
 ///
@@ -22,7 +22,11 @@ use crate::oauth::OAuthBroker;
 #[async_trait]
 pub trait ToolCaller: Send + Sync {
     /// Call an MCP tool by name with JSON parameters. Returns JSON result.
-    async fn call_tool(&self, name: &str, params: serde_json::Value) -> crate::Result<serde_json::Value>;
+    async fn call_tool(
+        &self,
+        name: &str,
+        params: serde_json::Value,
+    ) -> crate::Result<serde_json::Value>;
 }
 
 /// Context passed to lens execution
@@ -55,8 +59,14 @@ impl std::fmt::Debug for LensContext {
             .field("cwd", &self.cwd)
             .field("input", &self.input)
             .field("config", &self.config)
-            .field("tool_caller", &self.tool_caller.as_ref().map(|_| "<ToolCaller>"))
-            .field("oauth_broker", &self.oauth_broker.as_ref().map(|_| "<OAuthBroker>"))
+            .field(
+                "tool_caller",
+                &self.tool_caller.as_ref().map(|_| "<ToolCaller>"),
+            )
+            .field(
+                "oauth_broker",
+                &self.oauth_broker.as_ref().map(|_| "<OAuthBroker>"),
+            )
             .finish()
     }
 }
@@ -181,10 +191,7 @@ mod tests {
 
     #[test]
     fn test_lens_context_serialization() {
-        let ctx = LensContext::new(
-            PathBuf::from("/tmp"),
-            json!({"test": true}),
-        );
+        let ctx = LensContext::new(PathBuf::from("/tmp"), json!({"test": true}));
 
         let serialized = serde_json::to_string(&ctx).unwrap();
         let deserialized: LensContext = serde_json::from_str(&serialized).unwrap();
@@ -248,10 +255,8 @@ mod tests {
 
     #[test]
     fn test_lens_result_serialization() {
-        let result = LensResult::success_with_message(
-            json!({"data": [1, 2, 3]}),
-            "Complete".to_string(),
-        );
+        let result =
+            LensResult::success_with_message(json!({"data": [1, 2, 3]}), "Complete".to_string());
 
         let serialized = serde_json::to_string(&result).unwrap();
         let deserialized: LensResult = serde_json::from_str(&serialized).unwrap();

@@ -1,7 +1,7 @@
-use crate::domains::{DomainChecker, check_domain_availability, check_domains_batch};
+use crate::domains::{check_domain_availability, check_domains_batch, DomainChecker};
 use crate::error::Result;
 use crate::strategies::StrategyGenerator;
-use crate::types::{Domain, PhaseOutput, LandingPageTemplate};
+use crate::types::{Domain, LandingPageTemplate, PhaseOutput};
 use async_trait::async_trait;
 use lens::{Lens, LensContext, LensError, LensEvent, LensEventStream, LensResult, StreamingLens};
 use serde::{Deserialize, Serialize};
@@ -73,29 +73,40 @@ impl DomainHacksPlugin {
     }
 
     fn get_credentials(&self, input: &DomainHacksInput) -> Result<(String, String)> {
-        let key = input.godaddy_api_key.as_ref()
+        let key = input
+            .godaddy_api_key
+            .as_ref()
             .or_else(|| std::env::var("GODADDY_API_KEY").ok())
-            .ok_or_else(|| crate::error::DomainError::Config(
-                "GODADDY_API_KEY not set".to_string()
-            ))?;
+            .ok_or_else(|| {
+                crate::error::DomainError::Config("GODADDY_API_KEY not set".to_string())
+            })?;
 
-        let secret = input.godaddy_api_secret.as_ref()
+        let secret = input
+            .godaddy_api_secret
+            .as_ref()
             .or_else(|| std::env::var("GODADDY_API_SECRET").ok())
-            .ok_or_else(|| crate::error::DomainError::Config(
-                "GODADDY_API_SECRET not set".to_string()
-            ))?;
+            .ok_or_else(|| {
+                crate::error::DomainError::Config("GODADDY_API_SECRET not set".to_string())
+            })?;
 
         Ok((key.clone(), secret.clone()))
     }
 
-    fn generate_landing_page(&self, domain: &Domain, strategy: &crate::types::DomainStrategy) -> LandingPageTemplate {
+    fn generate_landing_page(
+        &self,
+        domain: &Domain,
+        strategy: &crate::types::DomainStrategy,
+    ) -> LandingPageTemplate {
         LandingPageTemplate {
             domain: domain.full.clone(),
             title: format!("{} - Developer Tools", domain.full),
             tagline: "Domain growth hacking for AI-powered development".to_string(),
             description: format!(
                 "Discover {} - {} for {}. {}",
-                strategy.use_cases.first().unwrap_or(&"Developer tools".to_string()),
+                strategy
+                    .use_cases
+                    .first()
+                    .unwrap_or(&"Developer tools".to_string()),
                 domain.full,
                 strategy.target_audience
             ),
@@ -133,7 +144,8 @@ impl DomainHacksPlugin {
                     "price": "0",
                     "priceCurrency": "USD"
                 }
-            })).unwrap_or_default(),
+            }))
+            .unwrap_or_default(),
         }
     }
 }
@@ -159,9 +171,8 @@ impl Lens for DomainHacksPlugin {
     }
 
     async fn execute(&self, ctx: LensContext) -> std::result::Result<LensResult, LensError> {
-        let input = Self::parse_input(&ctx).map_err(|e| {
-            LensError::ExecutionFailed(e.to_string())
-        })?;
+        let input =
+            Self::parse_input(&ctx).map_err(|e| LensError::ExecutionFailed(e.to_string()))?;
 
         let domains = input.domains.to_vec();
 
@@ -172,24 +183,22 @@ impl Lens for DomainHacksPlugin {
             })));
         }
 
-        let (key, secret) = self.get_credentials(&input).map_err(|e| {
-            LensError::ExecutionFailed(e.to_string())
-        })?;
+        let (key, secret) = self
+            .get_credentials(&input)
+            .map_err(|e| LensError::ExecutionFailed(e.to_string()))?;
 
         let checker = Arc::new(DomainChecker::new(key, secret));
 
         let mut results = Vec::new();
 
         for domain_str in &domains {
-            let domain = Domain::parse(domain_str).map_err(|e| {
-                LensError::ExecutionFailed(e.to_string())
-            })?;
+            let domain =
+                Domain::parse(domain_str).map_err(|e| LensError::ExecutionFailed(e.to_string()))?;
 
             let checker_for_spawn = checker.clone();
             let result = tokio::task::spawn_blocking(move || {
-                tokio::runtime::Handle::current().block_on(
-                    checker_for_spawn.check_availability(&domain)
-                )
+                tokio::runtime::Handle::current()
+                    .block_on(checker_for_spawn.check_availability(&domain))
             })
             .await
             .map_err(|e| LensError::ExecutionFailed(e.to_string()))??;
@@ -219,9 +228,8 @@ impl StreamingLens for DomainHacksPlugin {
         let start = Instant::now();
         let plugin_id = self.id.clone();
 
-        let input = Self::parse_input(&ctx).map_err(|e| {
-            LensError::ExecutionFailed(e.to_string())
-        })?;
+        let input =
+            Self::parse_input(&ctx).map_err(|e| LensError::ExecutionFailed(e.to_string()))?;
 
         let domains = input.domains.to_vec();
 
@@ -231,13 +239,13 @@ impl StreamingLens for DomainHacksPlugin {
                     "status": "no_domains",
                     "message": "No domains provided"
                 })),
-                Box::pin(ReceiverStream::new(rx))
+                Box::pin(ReceiverStream::new(rx)),
             ));
         }
 
-        let (key, secret) = self.get_credentials(&input).map_err(|e| {
-            LensError::ExecutionFailed(e.to_string())
-        })?;
+        let (key, secret) = self
+            .get_credentials(&input)
+            .map_err(|e| LensError::ExecutionFailed(e.to_string()))?;
 
         let checker = Arc::new(DomainChecker::new(key, secret));
 
@@ -253,7 +261,7 @@ impl StreamingLens for DomainHacksPlugin {
             let _ = tx
                 .send(LensEvent::progress(
                     &plugin_id,
-                    "Phase 1: Discovering and parsing domains..."
+                    "Phase 1: Discovering and parsing domains...",
                 ))
                 .await;
 
@@ -265,7 +273,7 @@ impl StreamingLens for DomainHacksPlugin {
             let _ = tx
                 .send(LensEvent::progress(
                     &plugin_id,
-                    &format!("Parsed {} domains", parsed_domains.len())
+                    &format!("Parsed {} domains", parsed_domains.len()),
                 ))
                 .await;
 
@@ -282,9 +290,8 @@ impl StreamingLens for DomainHacksPlugin {
             for domain in &parsed_domains {
                 let checker_for_spawn = checker.clone();
                 let result = tokio::task::spawn_blocking(move || {
-                    tokio::runtime::Handle::current().block_on(
-                        checker_for_spawn.check_availability(domain)
-                    )
+                    tokio::runtime::Handle::current()
+                        .block_on(checker_for_spawn.check_availability(domain))
                 })
                 .await;
 
@@ -294,7 +301,7 @@ impl StreamingLens for DomainHacksPlugin {
                         let _ = tx
                             .send(LensEvent::progress(
                                 &plugin_id,
-                                &format!("Error checking {}: {}", domain.full, e)
+                                &format!("Error checking {}: {}", domain.full, e),
                             ))
                             .await;
                     }
@@ -317,7 +324,7 @@ impl StreamingLens for DomainHacksPlugin {
             let _ = tx
                 .send(LensEvent::progress(
                     &plugin_id,
-                    &format!("{} available domains verified", available_domains.len())
+                    &format!("{} available domains verified", available_domains.len()),
                 ))
                 .await;
 
@@ -328,7 +335,7 @@ impl StreamingLens for DomainHacksPlugin {
                         "Phase 3: Generating growth strategies...",
                         50.0,
                     ))
-                .await;
+                    .await;
 
                 let generator = StrategyGenerator;
                 let mut all_strategies = Vec::new();
@@ -349,7 +356,10 @@ impl StreamingLens for DomainHacksPlugin {
                             let _ = tx
                                 .send(LensEvent::progress(
                                     &plugin_id,
-                                    &format!("Strategy generation failed for {}: {}", domain.domain.full, e)
+                                    &format!(
+                                        "Strategy generation failed for {}: {}",
+                                        domain.domain.full, e
+                                    ),
                                 ))
                                 .await;
                         }
@@ -364,7 +374,7 @@ impl StreamingLens for DomainHacksPlugin {
                         "Phase 4: Generating landing page templates...",
                         75.0,
                     ))
-                .await;
+                    .await;
 
                 if generate_strategies {
                     let generator = StrategyGenerator;
@@ -411,7 +421,8 @@ impl StreamingLens for DomainHacksPlugin {
                             ],
                         };
 
-                        let template = self.generate_landing_page(&domain.domain, &generic_strategy);
+                        let template =
+                            self.generate_landing_page(&domain.domain, &generic_strategy);
 
                         let _ = tx
                             .send(LensEvent::data(
@@ -467,7 +478,7 @@ mod tests {
     #[test]
     fn test_domains_input() {
         let single = DomainsInput::Single("example.com".to_string());
-        assert_eq!(single.to_vec().len(),1);
+        assert_eq!(single.to_vec().len(), 1);
         assert_eq!(single.to_single().unwrap(), "example.com");
 
         let multiple = DomainsInput::Multiple(vec!["a.com".to_string(), "b.dev".to_string()]);

@@ -48,6 +48,10 @@ pub struct LensManifest {
     #[serde(default)]
     pub dependencies: Vec<LensDependency>,
 
+    /// Optional keyboard shortcuts declared by this lens
+    #[serde(default)]
+    pub shortcuts: Vec<LensShortcut>,
+
     // === v2 fields ===
     /// Structured authors (v2)
     #[serde(default)]
@@ -126,7 +130,7 @@ pub enum SandboxLevel {
 /// ```toml
 /// [lens]
 /// id = "my-lens"
-/// surface = "pane"  # or "pack" or "desktop_app"
+/// surface = "pane"  # or "pack" or "tray" or "desktop_app"
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -136,6 +140,8 @@ pub enum LensSurface {
     Pane,
     /// Renders as a pack/sidebar panel
     Pack,
+    /// Renders as an ephemeral tray window
+    Tray,
     /// Runs as a standalone desktop application window
     DesktopApp,
 }
@@ -387,6 +393,23 @@ pub struct MessageType {
     /// JSON schema for the message payload (optional, for validation)
     #[serde(default)]
     pub schema: Option<serde_json::Value>,
+}
+
+/// Lens shortcut definition.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct LensShortcut {
+    /// Stable shortcut identifier within the lens (e.g., "launcher")
+    pub id: String,
+    /// Action key routed by the lens runtime (e.g., "launch")
+    pub action: String,
+    /// Accelerator combo in Tauri format (e.g., "CommandOrControl+Alt+Space")
+    pub combo: String,
+    /// Whether this shortcut should be global
+    #[serde(default)]
+    pub global: bool,
+    /// Optional human description shown in UI
+    #[serde(default)]
+    pub description: Option<String>,
 }
 
 /// Dependency on another lens
@@ -832,6 +855,7 @@ manifest_version = 2
         // supports_surface checks
         assert!(manifest.lens.supports_surface(&LensSurface::Pane));
         assert!(manifest.lens.supports_surface(&LensSurface::Pack));
+        assert!(!manifest.lens.supports_surface(&LensSurface::Tray));
         assert!(!manifest.lens.supports_surface(&LensSurface::DesktopApp));
 
         // all_surfaces returns declared list
@@ -859,5 +883,49 @@ surface = "desktop_app"
         let all = manifest.lens.all_surfaces();
         assert_eq!(all.len(), 1);
         assert_eq!(*all[0], LensSurface::DesktopApp);
+    }
+
+    #[test]
+    fn test_tray_surface_manifest() {
+        let toml = r#"
+[lens]
+id = "quick"
+name = "Quick"
+version = "0.1.0"
+surface = "tray"
+surfaces = ["tray"]
+"#;
+        let manifest = LensManifest::from_toml(toml).unwrap();
+
+        assert_eq!(manifest.lens.surface, LensSurface::Tray);
+        assert!(manifest.lens.supports_surface(&LensSurface::Tray));
+        assert!(!manifest.lens.supports_surface(&LensSurface::Pane));
+        assert!(!manifest.lens.supports_surface(&LensSurface::DesktopApp));
+    }
+
+    #[test]
+    fn test_shortcuts_manifest() {
+        let toml = r#"
+[lens]
+id = "quick"
+name = "Quick"
+version = "0.1.0"
+
+[[shortcuts]]
+id = "launcher"
+action = "launch"
+combo = "CommandOrControl+Alt+Space"
+global = true
+description = "Open quick launcher"
+"#;
+
+        let manifest = LensManifest::from_toml(toml).unwrap();
+        assert_eq!(manifest.shortcuts.len(), 1);
+        let shortcut = &manifest.shortcuts[0];
+        assert_eq!(shortcut.id, "launcher");
+        assert_eq!(shortcut.action, "launch");
+        assert_eq!(shortcut.combo, "CommandOrControl+Alt+Space");
+        assert!(shortcut.global);
+        assert_eq!(shortcut.description.as_deref(), Some("Open quick launcher"));
     }
 }

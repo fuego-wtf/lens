@@ -1,5 +1,5 @@
 use crate::error::Result;
-use crate::types::{Domain, DomainAvailability, DnsStatus, HttpStatus, PhaseOutput};
+use crate::types::{DnsStatus, Domain, DomainAvailability, HttpStatus, PhaseOutput};
 use crate::utils::{check_dns, check_http, verify_availability};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -42,22 +42,26 @@ impl DomainChecker {
             .basic_auth(&self.api_key, &self.api_secret)
             .send()
             .await
-            .map_err(|e| crate::error::DomainError::AvailabilityCheckFailed(
-                format!("GoDaddy API request failed: {}", e)
-            ))?;
+            .map_err(|e| {
+                crate::error::DomainError::AvailabilityCheckFailed(format!(
+                    "GoDaddy API request failed: {}",
+                    e
+                ))
+            })?;
 
         if !response.status().is_success() {
-            return Err(crate::error::DomainError::AvailabilityCheckFailed(
-                format!("GoDaddy API returned status: {}", response.status())
-            ));
+            return Err(crate::error::DomainError::AvailabilityCheckFailed(format!(
+                "GoDaddy API returned status: {}",
+                response.status()
+            )));
         }
 
-        let godaddy_response: GoDaddyDomainResponse = response
-            .json()
-            .await
-            .map_err(|e| crate::error::DomainError::AvailabilityCheckFailed(
-                format!("Failed to parse GoDaddy response: {}", e)
-            ))?;
+        let godaddy_response: GoDaddyDomainResponse = response.json().await.map_err(|e| {
+            crate::error::DomainError::AvailabilityCheckFailed(format!(
+                "Failed to parse GoDaddy response: {}",
+                e
+            ))
+        })?;
 
         let api_available = godaddy_response.available.unwrap_or(false);
         let is_exact_match = api_available;
@@ -95,9 +99,12 @@ impl DomainChecker {
         results
             .into_iter()
             .collect::<std::result::Result<Vec<_>, _>>()
-            .map_err(|e| crate::error::DomainError::AvailabilityCheckFailed(
-                format!("Batch check failed: {}", e)
-            ))
+            .map_err(|e| {
+                crate::error::DomainError::AvailabilityCheckFailed(format!(
+                    "Batch check failed: {}",
+                    e
+                ))
+            })
     }
 }
 
@@ -116,22 +123,25 @@ pub async fn check_domains_batch(
     api_key: &str,
     api_secret: &str,
 ) -> Result<Vec<DomainAvailability>> {
-    let parsed_domains: Result<Vec<Domain>> = domains
-        .iter()
-        .map(|d| Domain::parse(d))
-        .collect();
+    let parsed_domains: Result<Vec<Domain>> = domains.iter().map(|d| Domain::parse(d)).collect();
 
     let domain_list = parsed_domains?;
     let checker = DomainChecker::new(api_key.to_string(), api_secret.to_string());
     checker.check_multiple(&domain_list).await
 }
 
-pub fn group_by_availability(results: &[DomainAvailability]) -> HashMap<String, Vec<DomainAvailability>> {
+pub fn group_by_availability(
+    results: &[DomainAvailability],
+) -> HashMap<String, Vec<DomainAvailability>> {
     let mut groups = HashMap::new();
 
     groups.insert(
         "available".to_string(),
-        results.iter().filter(|r| r.available && r.verified).cloned().collect(),
+        results
+            .iter()
+            .filter(|r| r.available && r.verified)
+            .cloned()
+            .collect(),
     );
 
     groups.insert(
@@ -141,7 +151,11 @@ pub fn group_by_availability(results: &[DomainAvailability]) -> HashMap<String, 
 
     groups.insert(
         "unverified".to_string(),
-        results.iter().filter(|r| r.available && !r.verified).cloned().collect(),
+        results
+            .iter()
+            .filter(|r| r.available && !r.verified)
+            .cloned()
+            .collect(),
     );
 
     groups

@@ -28,3 +28,6 @@
 [submodule "store/leanbench"]
 	path = store/leanbench
 	url = git@github.com:fuego-wtf/graphyn-bench.git
+[submodule "store/quick"]
+	path = store/quick
+	url = git@github.com:fuego-wtf/quick.git
