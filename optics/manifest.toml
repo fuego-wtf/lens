@@ -1,0 +1,38 @@
+# Graphyn Optics — Lens Marketplace Manifest
+# schema-version: v1.0.0-alpha
+# status: SCAFFOLD (W187-L0-F, 2026-04-20)
+#
+# This file is the source of truth for the Optics marketplace registry.
+# Lenses listed here are published-and-installable via the Optics CLI.
+# See docs/MARKETPLACE.md for the full publishing contract.
+
+schema_version = "v1.0.0-alpha"
+marketplace_name = "Graphyn Optics"
+marketplace_fee_pct = 30                 # 30% per CLAUDE.md Financial Projections
+registry_root = "./registry"
+publish_pipeline = "./publish"
+
+# Publishing activation: post-V1 Wave 10 per backbone-plan-v1.md.
+# Until then this file reserves the filetree slot and declares the contract shape.
+activation_wave = "W10-post-v1"
+
+# ─────────────────────────────────────────────────────────────────────
+# Template block — copy per lens at publish time
+# ─────────────────────────────────────────────────────────────────────
+# [[lens]]
+# slug = "figma"                                       # must match lens/store/<slug>/
+# version = "v1.0.0"                                   # semver
+# source = "lens/store/figma"                          # submodule path
+# traits = ["McpServerLens", "Lens"]                   # from lens/src/*.rs
+# pricing_tier = "free"                                # free | paid | enterprise
+# published = false                                    # flip true after publish-pipeline GREEN
+# publisher = "graphyn"                                # attribution
+# description = "Figma design decomposer — extract components, tokens, layouts."
+# install_cmd = "optics install figma"                 # CLI surface
+# last_audited = ""                                    # ISO date of last security audit
+#
+# [lens.pricing]                                       # only when pricing_tier != "free"
+# currency = "USD"
+# setup_fee_cents = 0
+# monthly_fee_cents = 999
+# author_share_pct = 70                                # fixed: 30% platform, 70% author
