@@ -80,6 +80,38 @@ pub struct LensManifest {
     /// Enhanced dependencies with optional flag (v2)
     #[serde(default)]
     pub dependencies_v2: Vec<LensDependencyV2>,
+
+    /// Runtime availability gate for store/install surfaces.
+    #[serde(default)]
+    pub availability: Option<LensAvailability>,
+}
+
+impl LensManifest {
+    /// Returns a user-facing block reason when a lens is declared unavailable.
+    pub fn install_block_reason(&self) -> Option<String> {
+        let availability = self.availability.as_ref()?;
+        let status = availability.status.trim().to_ascii_lowercase();
+        if matches!(status.as_str(), "deferred" | "blocked" | "disabled") {
+            let reason = availability
+                .reason
+                .as_deref()
+                .map(str::trim)
+                .filter(|reason| !reason.is_empty())
+                .unwrap_or("This lens is not currently available for install.");
+            return Some(format!("Lens '{}' is {}: {}", self.lens.id, status, reason));
+        }
+        None
+    }
+}
+
+/// Store/install availability declaration.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LensAvailability {
+    /// `available`, `deferred`, `blocked`, or `disabled`.
+    pub status: String,
+    /// Human-readable reason shown by store/install surfaces.
+    #[serde(default)]
+    pub reason: Option<String>,
 }
 
 /// Security configuration for lens installation
@@ -889,8 +921,8 @@ surface = "desktop_app"
     fn test_tray_surface_manifest() {
         let toml = r#"
 [lens]
-id = "quick"
-name = "Quick"
+id = "example-lens"
+name = "Example Lens"
 version = "0.1.0"
 surface = "tray"
 surfaces = ["tray"]
@@ -907,8 +939,8 @@ surfaces = ["tray"]
     fn test_shortcuts_manifest() {
         let toml = r#"
 [lens]
-id = "quick"
-name = "Quick"
+id = "example-lens"
+name = "Example Lens"
 version = "0.1.0"
 
 [[shortcuts]]
@@ -916,7 +948,7 @@ id = "launcher"
 action = "launch"
 combo = "CommandOrControl+Alt+Space"
 global = true
-description = "Open quick launcher"
+description = "Open lens launcher"
 "#;
 
         let manifest = LensManifest::from_toml(toml).unwrap();
@@ -926,6 +958,26 @@ description = "Open quick launcher"
         assert_eq!(shortcut.action, "launch");
         assert_eq!(shortcut.combo, "CommandOrControl+Alt+Space");
         assert!(shortcut.global);
-        assert_eq!(shortcut.description.as_deref(), Some("Open quick launcher"));
+        assert_eq!(shortcut.description.as_deref(), Some("Open lens launcher"));
+    }
+
+    #[test]
+    fn test_availability_blocks_install() {
+        let toml = r#"
+[lens]
+id = "example-lens"
+name = "Example Lens"
+version = "0.1.0"
+
+[availability]
+status = "deferred"
+reason = "Waiting on runtime contract."
+"#;
+
+        let manifest = LensManifest::from_toml(toml).unwrap();
+        assert_eq!(
+            manifest.install_block_reason().as_deref(),
+            Some("Lens 'example-lens' is deferred: Waiting on runtime contract.")
+        );
     }
 }
