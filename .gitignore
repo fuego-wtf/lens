@@ -3,6 +3,7 @@ Cargo.lock
 
 # Graphyn generated artifacts baseline
 node_modules/
+.pnpm-store/
 .yarn/
 .bun/
 dist/
