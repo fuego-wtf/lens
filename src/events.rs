@@ -421,7 +421,7 @@ mod tests {
 
     #[test]
     fn test_lens_accessor() {
-        let events = vec![
+        let events = [
             LensEvent::started("a", "task"),
             LensEvent::progress("b", "msg"),
             LensEvent::data("c", "key", json!({})),
@@ -430,7 +430,7 @@ mod tests {
         ];
 
         let lenses: Vec<&str> = events.iter().map(|e| e.lens()).collect();
-        assert_eq!(lenses, vec!["a", "b", "c", "d", "e"]);
+        assert_eq!(lenses.as_slice(), &["a", "b", "c", "d", "e"]);
     }
 
     #[test]
