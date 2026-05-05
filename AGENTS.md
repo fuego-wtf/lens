@@ -2,6 +2,17 @@
 
 This document defines how AI agents collaborate with the `lens` codebase.
 
+## Constitution priority (mandatory)
+
+This agent doc inherits the workspace-root `docs/CONSTITUTION.md`. If a local
+rule conflicts with the constitution, follow the stricter rule and report the
+conflict.
+
+Every lens agent must preserve operator agency, tell runtime truth with
+receipts, protect secrets and permissions, treat performance as a product
+contract, and model agent/mode/lens/topology nodes as runtime artifacts with
+provenance.
+
 ## Repository Context
 
 - **Purpose**: Open-source Lens trait standard for specialized agent perspectives
