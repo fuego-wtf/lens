@@ -1,5 +1,12 @@
 # Agent Collaboration Policy
 
+## Clarity contract (mandatory)
+
+This document inherits `docs/CLARITY_CONTRACT.md`. When you use this
+contract, write plain-language decisions, expand project shorthand on
+first use, include task identifiers with titles, and end with the next
+concrete action or exact blocker.
+
 This document defines how AI agents collaborate with the `lens` codebase.
 
 ## Constitution priority (mandatory)
