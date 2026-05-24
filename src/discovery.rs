@@ -26,6 +26,7 @@ use crate::output_spec::{LensOutputSpec, OUTPUT_SPEC_FILENAME};
 /// Manifest filename
 pub const MANIFEST_FILENAME: &str = "lens.toml";
 pub const LEGACY_MANIFEST_FILENAME: &str = "plugin.toml";
+pub const LENS_URI_PREFIX: &str = "lens:";
 
 /// Default lenses directory name
 pub const LENS_DIR: &str = "lenses";
@@ -91,6 +92,11 @@ impl DiscoveredLens {
             .into_iter()
             .cloned()
             .collect()
+    }
+
+    /// Stable launch URI for this discovered lens.
+    pub fn launch_uri(&self) -> String {
+        format!("{}{}", LENS_URI_PREFIX, self.id())
     }
 }
 
@@ -167,6 +173,8 @@ impl LensDiscovery {
             ))
         })?;
 
+        let mut lens_dirs = Vec::new();
+
         for entry in entries {
             let entry = entry.map_err(|e| {
                 LensError::Initialization(format!("Failed to read directory entry: {}", e))
@@ -177,6 +185,12 @@ impl LensDiscovery {
                 continue;
             }
 
+            lens_dirs.push(path);
+        }
+
+        lens_dirs.sort();
+
+        for path in lens_dirs {
             match self.load_lens(&path) {
                 Ok(lens) => {
                     if require_output_spec && lens.output_spec.is_none() {
@@ -193,6 +207,12 @@ impl LensDiscovery {
                 }
             }
         }
+
+        discovered.sort_by(|a, b| {
+            a.id()
+                .cmp(b.id())
+                .then_with(|| a.manifest_path.cmp(&b.manifest_path))
+        });
 
         Ok(discovered)
     }
@@ -297,6 +317,83 @@ impl LensDiscovery {
     pub fn is_installed(&self, lens_id: &str) -> Result<bool> {
         Ok(self.get_lens(lens_id)?.is_some())
     }
+
+    /// Resolve a `lens:<id>` launch URI to a discovered manifest.
+    ///
+    /// This is a source-side preflight for host runtimes. It proves the launch
+    /// URI maps to exactly one installed lens manifest before a desktop host
+    /// creates any window or Agent Client Protocol session.
+    pub fn resolve_lens_uri(&self, launch_uri: &str) -> Result<DiscoveredLens> {
+        let lens_id = parse_lens_uri(launch_uri)?;
+        let matches: Vec<DiscoveredLens> = self
+            .scan()?
+            .into_iter()
+            .filter(|lens| lens.id() == lens_id)
+            .collect();
+
+        match matches.len() {
+            0 => Err(LensError::LensNotFound(format!(
+                "{}{}",
+                LENS_URI_PREFIX, lens_id
+            ))),
+            1 => Ok(matches.into_iter().next().expect("one match")),
+            _ => Err(LensError::InvalidInput(format!(
+                "Launch URI '{}{}' matched {} installed manifests; lens IDs must be unique",
+                LENS_URI_PREFIX,
+                lens_id,
+                matches.len()
+            ))),
+        }
+    }
+
+    /// Resolve a `lens:<id>` launch URI and verify the manifest supports a surface.
+    pub fn resolve_lens_uri_for_surface(
+        &self,
+        launch_uri: &str,
+        surface: &LensSurface,
+    ) -> Result<DiscoveredLens> {
+        let lens = self.resolve_lens_uri(launch_uri)?;
+        if lens.supports_surface(surface) {
+            return Ok(lens);
+        }
+
+        Err(LensError::InvalidInput(format!(
+            "Launch URI '{}' resolved to lens '{}' but manifest surfaces {:?} do not support {:?}",
+            launch_uri,
+            lens.id(),
+            lens.all_surfaces(),
+            surface
+        )))
+    }
+}
+
+/// Parse a runtime launch URI in the form `lens:<id>`.
+pub fn parse_lens_uri(launch_uri: &str) -> Result<&str> {
+    let lens_id = launch_uri.strip_prefix(LENS_URI_PREFIX).ok_or_else(|| {
+        LensError::InvalidInput(format!("Expected lens:<id>, got '{}'", launch_uri))
+    })?;
+
+    if lens_id.is_empty() {
+        return Err(LensError::InvalidInput(
+            "Expected lens:<id> with a non-empty lens id".to_string(),
+        ));
+    }
+
+    if lens_id.trim() != lens_id {
+        return Err(LensError::InvalidInput(format!(
+            "Lens launch id '{}' must not contain surrounding whitespace",
+            lens_id
+        )));
+    }
+
+    if lens_id.contains('/') || lens_id.contains('\\') {
+        return Err(LensError::InvalidInput(format!(
+            "Lens launch id '{}' must not contain path separators",
+            lens_id
+        )));
+    }
+
+    Ok(lens_id)
 }
 
 /// Load a manifest from a directory path (looks for lens.toml in the dir)
@@ -359,6 +456,12 @@ component = "components/Result.tsx"
         fs::write(lens_dir.join(MANIFEST_FILENAME), manifest).unwrap();
     }
 
+    fn create_test_lens_with_manifest(dir: &Path, dir_name: &str, manifest: &str) {
+        let lens_dir = dir.join(dir_name);
+        fs::create_dir_all(&lens_dir).unwrap();
+        fs::write(lens_dir.join(MANIFEST_FILENAME), manifest).unwrap();
+    }
+
     #[test]
     fn test_scan_empty_directory() {
         let temp_dir = tempdir().unwrap();
@@ -390,6 +493,20 @@ component = "components/Result.tsx"
     }
 
     #[test]
+    fn test_scan_returns_lenses_in_deterministic_id_order() {
+        let temp_dir = tempdir().unwrap();
+        create_test_lens(temp_dir.path(), "zeta", "Zeta Lens");
+        create_test_lens(temp_dir.path(), "alpha", "Alpha Lens");
+        create_test_lens(temp_dir.path(), "middle", "Middle Lens");
+
+        let discovery = LensDiscovery::new(temp_dir.path());
+        let lenses = discovery.scan().unwrap();
+        let ids: Vec<&str> = lenses.iter().map(|lens| lens.id()).collect();
+
+        assert_eq!(ids, vec!["alpha", "middle", "zeta"]);
+    }
+
+    #[test]
     fn test_load_single_lens() {
         let temp_dir = tempdir().unwrap();
         create_test_lens(temp_dir.path(), "figma", "Figma Decomposer");
@@ -413,6 +530,84 @@ component = "components/Result.tsx"
 
         let nonexistent = discovery.get_lens("nonexistent").unwrap();
         assert!(nonexistent.is_none());
+    }
+
+    #[test]
+    fn test_resolve_lens_uri_returns_matching_manifest() {
+        let temp_dir = tempdir().unwrap();
+        create_test_lens(temp_dir.path(), "quick", "Quick");
+
+        let discovery = LensDiscovery::new(temp_dir.path());
+        let lens = discovery.resolve_lens_uri("lens:quick").unwrap();
+
+        assert_eq!(lens.id(), "quick");
+        assert_eq!(lens.name(), "Quick");
+        assert_eq!(lens.launch_uri(), "lens:quick");
+        assert_eq!(
+            lens.manifest_path,
+            temp_dir.path().join("quick").join(MANIFEST_FILENAME)
+        );
+    }
+
+    #[test]
+    fn test_resolve_lens_uri_rejects_duplicate_manifest_ids() {
+        let temp_dir = tempdir().unwrap();
+        let manifest = r#"
+[lens]
+id = "quick"
+name = "Quick"
+version = "1.0.0"
+"#;
+        create_test_lens_with_manifest(temp_dir.path(), "quick-a", manifest);
+        create_test_lens_with_manifest(temp_dir.path(), "quick-b", manifest);
+
+        let discovery = LensDiscovery::new(temp_dir.path());
+        let error = discovery.resolve_lens_uri("lens:quick").unwrap_err();
+
+        assert!(matches!(error, LensError::InvalidInput(_)));
+        assert!(error.to_string().contains("matched 2 installed manifests"));
+    }
+
+    #[test]
+    fn test_resolve_lens_uri_for_surface_validates_manifest_surface() {
+        let temp_dir = tempdir().unwrap();
+        let manifest = r#"
+[lens]
+id = "quick"
+name = "Quick"
+version = "1.0.0"
+surface = "tray"
+surfaces = ["tray"]
+"#;
+        create_test_lens_with_manifest(temp_dir.path(), "quick", manifest);
+
+        let discovery = LensDiscovery::new(temp_dir.path());
+        let lens = discovery
+            .resolve_lens_uri_for_surface("lens:quick", &LensSurface::Tray)
+            .unwrap();
+
+        assert_eq!(lens.id(), "quick");
+
+        let error = discovery
+            .resolve_lens_uri_for_surface("lens:quick", &LensSurface::DesktopApp)
+            .unwrap_err();
+        assert!(matches!(error, LensError::InvalidInput(_)));
+        assert!(error.to_string().contains("do not support DesktopApp"));
+    }
+
+    #[test]
+    fn test_parse_lens_uri_rejects_invalid_launch_ids() {
+        let invalid_prefix = parse_lens_uri("http:quick").unwrap_err();
+        assert!(invalid_prefix.to_string().contains("Expected lens:<id>"));
+
+        let empty_id = parse_lens_uri("lens:").unwrap_err();
+        assert!(empty_id.to_string().contains("non-empty lens id"));
+
+        let padded_id = parse_lens_uri("lens: quick").unwrap_err();
+        assert!(padded_id.to_string().contains("surrounding whitespace"));
+
+        let path_id = parse_lens_uri("lens:../quick").unwrap_err();
+        assert!(path_id.to_string().contains("path separators"));
     }
 
     #[test]

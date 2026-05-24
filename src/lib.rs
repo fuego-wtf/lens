@@ -63,7 +63,8 @@ pub use streaming::{LensEventStream, StreamingLens};
 
 #[cfg(feature = "runtime")]
 pub use discovery::{
-    load_manifest, load_output_spec, DiscoveredLens, LensDiscovery, LENS_DIR, MANIFEST_FILENAME,
+    load_manifest, load_output_spec, parse_lens_uri, DiscoveredLens, LensDiscovery, LENS_DIR,
+    LENS_URI_PREFIX, MANIFEST_FILENAME,
 };
 #[cfg(feature = "runtime")]
 pub use loader::{LensLoader, LoadedLens, LENS_ENTRY_POINT};
