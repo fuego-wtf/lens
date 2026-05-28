@@ -31,3 +31,6 @@
 [submodule "store/quick"]
 	path = store/quick
 	url = git@github.com:fuego-wtf/quick.git
+[submodule "store/domain-hacks"]
+	path = store/domain-hacks
+	url = git@github.com:fuego-wtf/domain-hacks.git
