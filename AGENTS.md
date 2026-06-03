@@ -46,6 +46,13 @@ does not own decisions that belong to its parent discipline.
 
 **This repo:** child of desktop/ (RUNTIME), at `desktop/ → lens/`.
 
+## Filetree Awareness
+
+Lens no longer owns a local docs tree. Put durable Lens documentation under
+`../docs/lens/`, Lens store docs under `../docs/lens/store/<name>/`, and
+durable receipts under `../docs/receipts/`. Do not recreate a local `docs/`
+folder for Lens docs.
+
 ## Repository Context
 
 - **Purpose**: Open-source Lens trait standard for specialized agent perspectives

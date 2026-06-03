@@ -61,6 +61,12 @@ lens = { git = "https://github.com/fuego-wtf/lens.git" }
 
 Four methods. One trait. Your agent now has a perspective.
 
+## Workspace Documentation
+
+Durable Lens documentation lives under `../docs/lens/` from this repo, and Lens
+store docs live under `../docs/lens/store/<name>/`. Keep run receipts under
+`../docs/receipts/`.
+
 ## How It Works
 
 ```
@@ -148,7 +154,7 @@ store/
 
 ## Build Your Own
 
-> **Full guide:** [`docs/DEVELOPING_A_LENS.md`](docs/DEVELOPING_A_LENS.md) — step-by-step walkthrough covering manifest, traits, surfaces, shortcuts, security, installation, and publishing.
+> **Full guide:** [`docs/lens/DEVELOPING_A_LENS.md`](../docs/lens/DEVELOPING_A_LENS.md) — step-by-step walkthrough covering manifest, traits, surfaces, shortcuts, security, installation, and publishing.
 
 ### 1. Implement the trait
 
