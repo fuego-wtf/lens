@@ -44,3 +44,12 @@ temp/
 *.tmp
 *.temp
 *.pid
+# Tidy-workspace local-only artifacts
+.hermes/
+.codex/
+tmp/
+temp/
+*.tmp
+*.temp
+*.log
+.DS_Store
